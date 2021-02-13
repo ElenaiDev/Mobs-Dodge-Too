@@ -2,6 +2,7 @@ package com.elenai.mobsdodgetoo.proxy;
 
 import com.elenai.mobsdodgetoo.MobsDodgeToo;
 import com.elenai.mobsdodgetoo.event.AttackEventListener;
+import com.elenai.mobsdodgetoo.network.PacketHandler;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -15,13 +16,12 @@ public class CommonProxy {
 
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
-
+		PacketHandler.registerMessages(MobsDodgeToo.MODID);
 	}
 
 	@EventHandler
 	public void init(FMLInitializationEvent event) {
 		MinecraftForge.EVENT_BUS.register(new AttackEventListener());
-
 	}
 
 	@EventHandler
