@@ -31,13 +31,15 @@ public class AttackEventListener {
          *
 		 *		Restrictions (optional) list of modname:potioneffects that prevent all mobs from dodging while they are affected by this potion effect
 		 */
-		double f = 10;
+		
+		event.setCanceled(true);
+		double f = 0.8;
 		double motionX = (double) -(MathHelper.cos(entity.rotationYaw / 180.0F * (float) Math.PI)
 				* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f);
 		double motionZ = (double) (-MathHelper.sin(entity.rotationYaw / 180.0F * (float) Math.PI)
 				* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f);
 		
-		entity.setVelocity(motionX, 0.2, motionZ);
+		entity.setVelocity(motionX, 0.25, motionZ);
 		}
 	}
 }
