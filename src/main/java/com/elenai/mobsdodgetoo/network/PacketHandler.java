@@ -5,6 +5,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 
 public class PacketHandler {
 
+	@SuppressWarnings("unused")
 	private static int nextId = 0;
 	public static SimpleNetworkWrapper instance;
 
