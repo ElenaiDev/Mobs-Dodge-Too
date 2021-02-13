@@ -1,2 +1,2 @@
 # Mobs Dodge Too
-Oh it's happening alright.
+Mobs Dodge player attacks smoothly.

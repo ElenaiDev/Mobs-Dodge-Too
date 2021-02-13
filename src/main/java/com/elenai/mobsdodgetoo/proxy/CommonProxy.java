@@ -1,7 +1,9 @@
 package com.elenai.mobsdodgetoo.proxy;
 
 import com.elenai.mobsdodgetoo.MobsDodgeToo;
+import com.elenai.mobsdodgetoo.event.AttackEventListener;
 
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -18,6 +20,7 @@ public class CommonProxy {
 
 	@EventHandler
 	public void init(FMLInitializationEvent event) {
+		MinecraftForge.EVENT_BUS.register(new AttackEventListener());
 
 	}
 
