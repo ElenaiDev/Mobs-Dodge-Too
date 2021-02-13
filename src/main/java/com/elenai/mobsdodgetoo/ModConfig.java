@@ -7,6 +7,7 @@ import net.minecraftforge.common.config.Config.Type;
 public class ModConfig {
 
 	public static String[] mobs = {"minecraft:zombie;0.5;1;0.5;1", "minecraft:villager;0.5;1;0.5;1"};
-	public static String texturePath = "rebirthofthemobs/assets/textures/";
+	public static String[] warpMobs = {"minecraft:zombie;0.5;1;0.5;1", "minecraft:villager;0.5;1;0.5;1"};
+
 
 }

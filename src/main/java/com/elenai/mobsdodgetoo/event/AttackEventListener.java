@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 
 import com.elenai.mobsdodgetoo.ModConfig;
+import com.elenai.mobsdodgetoo.capability.cooldown.CooldownProvider;
+import com.elenai.mobsdodgetoo.capability.cooldown.ICooldown;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -61,11 +63,16 @@ public class AttackEventListener {
 				ResourceLocation soundId = new ResourceLocation(fields[5]);
 			}
 			if(fields.length > 6) {
-				ResourceLocation particleTexture = new ResourceLocation(ModConfig.texturePath + fields[6]);
+				ResourceLocation particleTexture = new ResourceLocation(fields[6]);
 			}
 			
-			if(EntityList.getKey(entity).equals(new ResourceLocation(entityId)) && meleeChance <= entity.world.rand.nextDouble()) {
+			ICooldown c = entity.getCapability(CooldownProvider.COOLDOWN_CAP, null);
+
+			if(EntityList.getKey(entity).equals(new ResourceLocation(entityId)) && meleeChance >= entity.world.rand.nextDouble() && c.getCooldown() <= 0) {
 				event.setCanceled(true);
+				
+				c.set(meleeCooldown);
+				
 				double f = 0.8;
 				double motionX = (double) -(MathHelper.cos(entity.rotationYaw / 180.0F * (float) Math.PI)
 						* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f);
