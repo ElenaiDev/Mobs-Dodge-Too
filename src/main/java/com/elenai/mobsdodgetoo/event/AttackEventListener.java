@@ -23,26 +23,10 @@ public class AttackEventListener {
 
 	@SubscribeEvent
 	public void onPlayerAttack(LivingAttackEvent event) {
-		if (event.getEntityLiving().getAttackingEntity() instanceof EntityPlayer
-				&& !(event.getEntityLiving() instanceof EntityPlayer)) {
+		if (event.getEntityLiving().getAttackingEntity() instanceof EntityPlayer) {
 			Entity entity = event.getEntityLiving();
 
 			/*
-			 * TODO: Make Dodge Direction Random (Left, Right or Backwards) Intelligently
-			 * Check if dodging would collide with lava, or fall of a ledge. (Scan Block
-			 * position, may need to be Client-Side) Add Config Checker to see if the mob
-			 * can dodge and their chance, refer to Armor Weights in ED2 for reference. Add
-			 * Config for below fields. We can use a String array to determine each entity,
-			 * separate each value in each String with a semicolon and then check the length
-			 * (or check value[x] != null) in order to see if the optional values are added)
-			 * 
-			 * Fields: Entity (modname:entity) Chance to Melee Dodge (Decimal value between
-			 * 0 and 1) Melee Dodge Cooldown in seconds Chance to Ranged Dodge (Decimal
-			 * value between 0 and 1) Ranged Dodge Cooldown in seconds Sound (Optional)
-			 * Specify a path to a sound event to play for this mob’s dodge. Particle
-			 * (optional) Uses a defined particle effect to use for this mob’s dodges,
-			 * pulled from (rebirthofthemobs/assets/textures/)
-			 *
 			 * Restrictions (optional) list of modname:potioneffects that prevent all mobs
 			 * from dodging while they are affected by this potion effect
 			 */
@@ -73,71 +57,199 @@ public class AttackEventListener {
 
 				if (EntityList.getKey(entity).equals(new ResourceLocation(entityId))
 						&& meleeChance >= entity.world.rand.nextDouble() && c.getCooldown() <= 0) {
-					
 
 					double f = 0.6;
 
-					/*if (entity.world.rand.nextDouble() <= 0.33) {
-						dodgeLeft(entity, f);
-					} else if (entity.world.rand.nextDouble() >= 0.66) {
-						dodgeRight(entity, f);
-					} else {
-						dodgeBack(entity, f);
-					}*/
-					dodgeRight(entity, f, event, meleeCooldown);
+					
+					 if (entity.world.rand.nextDouble() <= 0.33) { dodgeLeft(entity, f, event, meleeCooldown, 1); } else if
+					 (entity.world.rand.nextDouble() >= 0.66) { dodgeRight(entity, f, event, meleeCooldown, 1); } else {
+					 dodgeBack(entity, f, event, meleeCooldown, 1); }
+					 
 				}
 			});
 		}
 
 	}
 
-	public void dodgeRight(Entity entity, double f, LivingAttackEvent event, int cooldown) {
-
+	
+	/*
+	 * NORTH: Forwards = nZ, Backwards = pZ, Left = nX, Right = pX
+	 * EAST: Forwards = pX, Backwards = nX, Left = nZ, Right = pZ
+	 * SOUTH: Forwards = pZ, Backwards = nZ, Left = pX, Right = nX
+	 * WEST: Forwards = nX, Backwards = pX, Left = pZ, Right = nZ
+	 */
+	
+	public void dodgeRight(Entity entity, double f, LivingAttackEvent event, int cooldown, int attempt) {
 
 		List<String> blocks = new ArrayList<String>();
 		Collections.addAll(blocks, ModConfig.blockBlacklist);
 		boolean canDodge = true;
 		for (String b : blocks) {
-			//if (entity.getHorizontalFacing() == EnumFacing.NORTH) {
-				for (int i = 0; i < 5; ++i) {
-					if (entity.getEntityWorld().getBlockState(entity.getPosition().add(i, 0, 0)).getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+			for (int i = 0; i < 5; ++i) {
+				for (int h = -1; h < entity.height; ++h) {
+					switch (entity.getHorizontalFacing()) {
+					case NORTH:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(i, h, 0))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case EAST:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(0, h, i))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case SOUTH:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(-i, h, 0))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case WEST:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(0, h, -i))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					default:
 						canDodge = false;
-				} else
-					if (entity.getEntityWorld().getBlockState(entity.getPosition().add(i, 1, 0)).getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
-						canDodge = false;
+						break;
 					}
+				}
 			}
-				//}
 		}
-		if(canDodge) {
+		if (canDodge) {
 			ICooldown c = entity.getCapability(CooldownProvider.COOLDOWN_CAP, null);
 			event.setCanceled(true);
 			c.set(cooldown);
-			
+
 			entity.setVelocity(
 					(double) -(MathHelper.cos(entity.rotationYaw / 180.0F * (float) Math.PI)
 							* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f),
 					0.25, (double) (-MathHelper.sin(entity.rotationYaw / 180.0F * (float) Math.PI)
 							* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f));
 		} else {
-			
+			if(attempt <= 3) {
+				dodgeLeft(entity, f, event, cooldown, attempt + 1);
+			}
 		}
 
 	}
 
-	public void dodgeLeft(Entity entity, double f, LivingAttackEvent event, int cooldown) {
-		entity.setVelocity( (double) (MathHelper.cos(entity.rotationYaw / 180.0F * (float) Math.PI)
+	public void dodgeLeft(Entity entity, double f, LivingAttackEvent event, int cooldown, int attempt) {
+		
+		List<String> blocks = new ArrayList<String>();
+		Collections.addAll(blocks, ModConfig.blockBlacklist);
+		boolean canDodge = true;
+		for (String b : blocks) {
+			for (int i = 0; i < 5; ++i) {
+				for (int h = -1; h < entity.height; ++h) {
+					switch (entity.getHorizontalFacing()) {
+					case NORTH:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(-i, h, 0))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case EAST:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(0, h, -i))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case SOUTH:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(i, h, 0))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case WEST:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(0, h, i))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					default:
+						canDodge = false;
+						break;
+					}
+				}
+			}
+		}
+		
+		if (canDodge) {
+			ICooldown c = entity.getCapability(CooldownProvider.COOLDOWN_CAP, null);
+			event.setCanceled(true);
+			c.set(cooldown);
+		entity.setVelocity(
+				(double) (MathHelper.cos(entity.rotationYaw / 180.0F * (float) Math.PI)
 						* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f),
 				0.25, (double) -(-MathHelper.sin(entity.rotationYaw / 180.0F * (float) Math.PI)
 						* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f));
+		}  else {
+			if(attempt <= 3) {
+				dodgeBack(entity, f, event, cooldown, attempt + 1);
+			}
+	}
 	}
 
-	public void dodgeBack(Entity entity, double f, LivingAttackEvent event, int cooldown) {
-		entity.setVelocity(
-				(double) -(-MathHelper.sin(entity.rotationYaw / 180.0F * (float) Math.PI)
-						* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f),
-				0.25, (double) -(MathHelper.cos(entity.rotationYaw / 180.0F * (float) Math.PI)
-						* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f));
+	public void dodgeBack(Entity entity, double f, LivingAttackEvent event, int cooldown, int attempt) {
+
+		List<String> blocks = new ArrayList<String>();
+		Collections.addAll(blocks, ModConfig.blockBlacklist);
+		boolean canDodge = true;
+		for (String b : blocks) {
+			for (int i = 0; i < 5; ++i) {
+				for (int h = -1; h < entity.height; ++h) {
+					switch (entity.getHorizontalFacing()) {
+					case NORTH:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(0, h, i))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case EAST:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(-i, h, 0))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case SOUTH:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(0, h, -i))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					case WEST:
+						if (entity.getEntityWorld().getBlockState(entity.getPosition().add(i, h, 0))
+								.getBlock() == ForgeRegistries.BLOCKS.getValue(new ResourceLocation(b))) {
+							canDodge = false;
+						}
+						break;
+					default:
+						canDodge = false;
+						break;
+					}
+				}
+			}
+		}
+		
+		if (canDodge) {
+			ICooldown c = entity.getCapability(CooldownProvider.COOLDOWN_CAP, null);
+			event.setCanceled(true);
+			c.set(cooldown);
+			entity.setVelocity(
+					(double) -(-MathHelper.sin(entity.rotationYaw / 180.0F * (float) Math.PI)
+							* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f),
+					0.25, (double) -(MathHelper.cos(entity.rotationYaw / 180.0F * (float) Math.PI)
+							* MathHelper.cos(1 / 180.0F * (float) Math.PI) * f));
+		}  else {
+			if(attempt <= 3) {
+				dodgeRight(entity, f, event, cooldown, attempt + 1);
+			}
+	}
+		
 	}
 
 }
